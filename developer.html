@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Developer Dashboard - AccessiScan</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #eef2ff;
+      color: #111827;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 24px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 30px;
+    }
+
+    .topbar h1 {
+      font-size: 2rem;
+      margin: 0;
+    }
+
+    .logout-btn {
+      padding: 12px 20px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .section-card {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 45px rgba(15,23,42,0.08);
+      padding: 26px;
+      margin-bottom: 24px;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 18px;
+      margin-top: 20px;
+    }
+
+    .metric-card {
+      background: #eef2ff;
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .metric-card strong {
+      display: block;
+      margin-bottom: 10px;
+      color: #475569;
+    }
+
+    .metric-value {
+      font-size: 2.25rem;
+      color: #4338ca;
+      font-weight: 700;
+    }
+
+    .log-item {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 14px;
+    }
+
+    .log-item strong {
+      color: #111827;
+    }
+
+    .log-item small {
+      color: #6b7280;
+    }
+
+    .log-item .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 10px;
+      color: #475569;
+      font-size: 0.9rem;
+    }
+
+    .log-list {
+      max-height: 420px;
+      overflow-y: auto;
+    }
+
+    @media (max-width: 768px) {
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div style="margin-bottom: 30px;">
+      <a href="index.html" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 24px rgba(102, 126, 234, 0.3)'" onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.3)'">
+        ← Back to Scanner
+      </a>
+    </div>
+    <div class="topbar">
+      <div>
+        <h1>Developer Dashboard</h1>
+        <p style="color: #475569; margin-top: 6px;">Secure developer access to analytics and developer logs.</p>
+      </div>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+
+    <div class="section-card">
+      <h2>Developer Overview</h2>
+      <div class="card-grid">
+        <div class="metric-card">
+          <strong>Total Scans</strong>
+          <div class="metric-value" id="devTotalScans">0</div>
+        </div>
+        <div class="metric-card">
+          <strong>Total Severe Issues</strong>
+          <div class="metric-value" id="devSevereIssues">0</div>
+        </div>
+        <div class="metric-card">
+          <strong>Average WCAG Score</strong>
+          <div class="metric-value" id="devAvgScore">0</div>
+        </div>
+        <div class="metric-card">
+          <strong>Last Scan Date</strong>
+          <div class="metric-value" id="devLastScan">None</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <h2>Developer Logs</h2>
+      <div class="log-list" id="devLogsList">
+        <p style="color: #6b7280; text-align: center;">Loading logs...</p>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <h2>Recent Severe Issues</h2>
+      <div class="log-list" id="devSevereList">
+        <p style="color: #6b7280; text-align: center;">Loading severe issue history...</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const BASE_URL = "/";
+
+    async function logout() {
+      await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' });
+      window.location.href = '/login.html';
+    }
+
+    function getComplianceColor(level) {
+      const colors = {
+        'AAA': '#10b981',
+        'AA': '#f59e0b',
+        'A': '#f97316',
+        'Below A': '#ef4444'
+      };
+      return colors[level] || '#6b7280';
+    }
+
+    async function loadDeveloperData() {
+      try {
+        const statsRes = await fetch('/api/dashboard/stats');
+        const stats = await statsRes.json();
+
+        document.getElementById('devTotalScans').textContent = stats.totalScans;
+        document.getElementById('devSevereIssues').textContent = stats.totalSevereIssues;
+        document.getElementById('devAvgScore').textContent = stats.avgWcagScore;
+        document.getElementById('devLastScan').textContent = stats.lastScanDate ? new Date(stats.lastScanDate).toLocaleString() : 'None';
+
+        const logsRes = await fetch('/api/dashboard/logs?limit=15');
+        const logs = await logsRes.json();
+        const logsHtml = logs.length ? logs.map(log => {
+          const statusColor = log.responseStatus >= 200 && log.responseStatus < 300 ? '#10b981' :
+                              log.responseStatus >= 400 ? '#ef4444' : '#f59e0b';
+          return `
+            <div class="log-item">
+              <strong>${log.endpoint}</strong> <small>(${log.method})</small>
+              <div class="meta">
+                <span style="color:${statusColor}; font-weight:700;">${log.responseStatus}</span>
+                <span>${log.responseTime}ms</span>
+                <span>${new Date(log.timestamp).toLocaleString()}</span>
+              </div>
+              <div class="meta">
+                <span>IP: ${log.ipAddress}</span>
+                <span>${log.userAgent}</span>
+              </div>
+            </div>
+          `;
+        }).join('') : '<p style="color:#6b7280; text-align:center;">No developer logs found yet.</p>';
+        document.getElementById('devLogsList').innerHTML = logsHtml;
+
+        const severeRes = await fetch('/api/dashboard/severe-issues?limit=10');
+        const severeIssues = await severeRes.json();
+        const severeHtml = severeIssues.length ? severeIssues.map(issue => `
+          <div class="log-item">
+            <strong>${issue.title}</strong>
+            <div class="meta">
+              <span>${issue.url}</span>
+              <span>${issue.severity.toUpperCase()}</span>
+              <span>${issue.wcagScore ? 'Score: ' + issue.wcagScore : ''}</span>
+            </div>
+            <div class="meta">
+              <span>Criterion: ${issue.criterion}</span>
+              <span>${new Date(issue.scanDate).toLocaleDateString()}</span>
+            </div>
+          </div>
+        `).join('') : '<p style="color:#6b7280; text-align:center;">No severe issues recorded yet.</p>';
+        document.getElementById('devSevereList').innerHTML = severeHtml;
+      } catch (err) {
+        document.getElementById('devLogsList').innerHTML = '<p style="color:#ef4444; text-align:center;">Unable to load developer data.</p>';
+        document.getElementById('devSevereList').innerHTML = '<p style="color:#ef4444; text-align:center;">Unable to load severe issue data.</p>';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadDeveloperData);
+  </script>
+</body>
+</html>

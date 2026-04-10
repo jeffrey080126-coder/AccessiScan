@@ -1,0 +1,2353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AccessiScan - WCAG 2.1 Accessibility Auditor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Primary Palette - WCAG AAA Compliant - Lightened */
+      --primary: #6b8cff;
+      --primary-light: #9bb3ff;
+      --primary-light-bg: rgba(107,140,255,0.1);
+      --primary-strong-bg: rgba(107,140,255,0.15);
+      --primary-focus: #4d6aff;
+      
+      /* Semantic Colors - Lightened */
+      --success: #34d399;
+      --success-light: rgba(52,211,153,0.12);
+      --warning: #fbbf24;
+      --warning-light: rgba(251,191,36,0.12);
+      --error: #f87171;
+      --error-light: rgba(248,113,113,0.12);
+      --info: #22d3ee;
+      --accent: #5eead4;
+      
+      /* Legacy Support */
+      --electric: var(--primary);
+      --electric-2: var(--primary-light);
+      --electric-dim: var(--primary-light-bg);
+      --gold: #d4af37;
+      --gold-light: #f5d76e;
+      --gold-dim: rgba(212,175,55,0.15);
+      --cyan: var(--accent);
+      --rose: #fb7185;
+      --amber: var(--warning);
+      --emerald: var(--success);
+      
+      /* Text Hierarchy - Adjusted for light background */
+      --text-primary: #1a202c;
+      --text-secondary: #4a5568;
+      --text-tertiary: #718096;
+      --text-1: var(--text-primary);
+      --text-2: var(--text-secondary);
+      --text-3: var(--text-tertiary);
+      
+      /* Background & Surface - More formal and lighter */
+      --bg-dark: #ffffff;
+      --bg-darker: #f8fafc;
+      --surface-primary: rgba(255,255,255,0.95);
+      --surface-secondary: rgba(255,255,255,0.85);
+      --glass-bg: rgba(255,255,255,0.9);
+      --glass-border: rgba(0,0,0,0.1);
+      --glass-blur: blur(8px);
+      --glass-shadow: 0 4px 16px rgba(0,0,0,0.05);
+      
+      /* Border Radius */
+      --r-xs: 4px;
+      --r-sm: 8px;
+      --r-md: 12px;
+      --r-lg: 16px;
+      --r-xl: 24px;
+      --r-2xl: 32px;
+      
+      /* Spacing Scale (8px base) */
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --space-10: 40px;
+      --space-12: 48px;
+      
+      /* Typography - Changed fonts */
+      --font-sans: 'Inter', sans-serif;
+      --font-serif: 'Inter', serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      
+      /* Transitions */
+      --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      min-height: 100%;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      overflow-x: hidden;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      position: relative;
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+      line-height: 1.2;
+      font-weight: 700;
+    }
+    
+    a {
+      color: var(--primary-light);
+      text-decoration: none;
+      transition: color var(--transition-fast);
+    }
+    
+    a:hover:not([aria-disabled="true"]) {
+      color: var(--primary);
+    }
+    
+    a:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+      border-radius: var(--r-sm);
+    }
+    
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      transition: all var(--transition-base);
+    }
+    
+    button:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+    
+    input, textarea {
+      font-family: inherit;
+      transition: all var(--transition-base);
+    }
+    
+    input:focus-visible, textarea:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: -2px;
+    }
+
+    #bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    #bg::before {
+      content: '';
+      position: absolute;
+      inset: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(ellipse 60% 50% at 20% 20%, rgba(83,119,255,0.22), transparent 55%),
+                  radial-gradient(ellipse 50% 60% at 80% 80%, rgba(201,168,76,0.14), transparent 50%),
+                  radial-gradient(ellipse 40% 40% at 50% 50%, rgba(0,229,200,0.08), transparent 50%),
+                  radial-gradient(ellipse 70% 60% at 10% 80%, rgba(255,75,110,0.08), transparent 50%),
+                  #04060e;
+      animation: meshMove 20s ease-in-out infinite alternate;
+      transform: translate(0,0) rotate(0deg);
+    }
+
+    #bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(rgba(83,119,255,0.035) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(83,119,255,0.035) 1px, transparent 1px);
+      background-size: 52px 52px;
+      mask-image: radial-gradient(ellipse 90% 80% at 50% 50%, black 20%, transparent 100%);
+    }
+
+    .o1,
+    .o2,
+    .o3,
+    .o4 {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(100px);
+      z-index: 0;
+    }
+
+    .o1 {
+      width: 520px;
+      height: 520px;
+      background: rgba(83,119,255,0.25);
+      top: -120px;
+      left: -100px;
+      animation: orbFloat1 26s ease-in-out infinite;
+    }
+
+    .o2 {
+      width: 400px;
+      height: 400px;
+      background: rgba(201,168,76,0.16);
+      bottom: -80px;
+      right: -80px;
+      animation: orbFloat2 22s ease-in-out infinite;
+    }
+
+    .o3 {
+      width: 300px;
+      height: 300px;
+      background: rgba(0,229,200,0.11);
+      top: 38%;
+      right: 10%;
+      animation: orbFloat3 30s ease-in-out infinite;
+    }
+
+    .o4 {
+      width: 250px;
+      height: 250px;
+      background: rgba(255,75,110,0.09);
+      bottom: 20%;
+      left: 5%;
+      animation: orbFloat4 24s ease-in-out infinite;
+    }
+
+    .scan-beam {
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 60%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(83,119,255,0.04), rgba(255,255,255,0.02), transparent);
+      z-index: 0;
+      animation: beam 4s ease-in-out 0.5s 1 forwards;
+    }
+
+    .dline {
+      position: fixed;
+      width: 1px;
+      height: 100vh;
+      top: 0;
+      z-index: 0;
+      background: linear-gradient(180deg, transparent, rgba(83,119,255,0.1) 40%, rgba(201,168,76,0.08) 70%, transparent);
+      opacity: 0.4;
+    }
+
+    .dl1 { left: 18%; transform: skewX(-6deg); }
+    .dl2 { right: 18%; transform: skewX(6deg); }
+    .dl3 { left: 50%; }
+
+    body {
+      padding: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    header {
+      text-align: center;
+      padding: var(--space-12) var(--space-4);
+      animation: fadeDown 0.8s cubic-bezier(0.2,0.8,0.3,1) both;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-5);
+      border-radius: 999px;
+      background: var(--primary-light-bg);
+      border: 1px solid var(--primary-light);
+      color: var(--primary-light);
+      font-family: var(--font-sans);
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: var(--space-6);
+      font-weight: 700;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(2.5rem, 8vw, 4rem);
+      line-height: 1.1;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: var(--space-5);
+      background: linear-gradient(135deg, var(--text-primary) 0%, var(--primary) 50%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      font-family: var(--font-sans);
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      max-width: 520px;
+      margin: 0 auto;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+
+    .glass {
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow);
+      border-radius: var(--r-xl);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.35s cubic-bezier(0.2,0.8,0.3,1);
+    }
+
+    .glass::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--primary), var(--accent), transparent);
+      opacity: 0.45;
+    }
+
+    .glass:hover {
+      transform: translateY(-4px);
+      border-color: rgba(83,119,255,0.22);
+      box-shadow: 0 40px 100px rgba(0,0,0,0.65),
+                  0 1px 0 rgba(255,255,255,0.08) inset,
+                  0 0 60px rgba(83,119,255,0.08);
+    }
+
+    .scanner-panel {
+      padding: var(--space-10) var(--space-10);
+      margin-bottom: var(--space-6);
+      background: var(--glass-bg);
+      overflow: hidden;
+      border: 1px solid var(--glass-border);
+      border-radius: var(--r-xl);
+      transition: all 0.35s cubic-bezier(0.2,0.8,0.3,1);
+    }
+
+    .scanner-panel:hover {
+      cursor: default;
+      border-color: rgba(83,119,255,0.22);
+      box-shadow: 0 40px 100px rgba(0,0,0,0.65),
+                  0 1px 0 rgba(255,255,255,0.08) inset,
+                  0 0 60px rgba(83,119,255,0.08);
+    }
+
+    .scanner-panel .label-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-3);
+      margin-bottom: var(--space-5);
+    }
+
+    .field-label {
+      position: relative;
+      font-family: var(--font-sans);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-secondary);
+      padding-left: var(--space-5);
+      font-weight: 600;
+    }
+
+    .field-label::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 2px;
+      height: 14px;
+      background: var(--primary);
+      border-radius: 999px;
+    }
+
+    .input-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      flex-wrap: wrap;
+    }
+
+    #url {
+      flex: 1;
+      min-width: 260px;
+      font-family: var(--font-mono);
+      background: var(--surface-primary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--r-lg);
+      padding: var(--space-3) var(--space-5);
+      font-size: 0.95rem;
+      outline: none;
+      transition: all var(--transition-base);
+    }
+
+    #url::placeholder {
+      color: var(--text-tertiary);
+    }
+
+    #url:hover:not(:disabled) {
+      border-color: var(--primary-light);
+    }
+
+    #url:focus-visible {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-light-bg), 0 0 24px rgba(83,119,255,0.15);
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    #url:disabled {
+      background: var(--surface-secondary);
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    #scanBtn {
+      font-family: var(--font-sans);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: var(--space-3) var(--space-9);
+      border-radius: var(--r-lg);
+      border: none;
+      color: white;
+      background: linear-gradient(135deg, var(--primary), #3a5bd9);
+      box-shadow: 0 4px 24px rgba(83,119,255,0.4);
+      animation: pulseGlow 2.5s infinite;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      font-size: 0.9rem;
+    }
+
+    #scanBtn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 36px rgba(83,119,255,0.55);
+    }
+
+    #scanBtn:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    #scanBtn:active:not(:disabled) {
+      transform: translateY(0) scale(0.99);
+    }
+
+    #scanBtn:disabled {
+      opacity: 0.4;
+      animation: none;
+      cursor: not-allowed;
+    }
+
+    .tip-text {
+      font-family: var(--font-sans);
+      color: var(--text-tertiary);
+      font-size: 0.82rem;
+      margin-top: var(--space-5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-3);
+    }
+
+    .tip-text span:first-child {
+      color: var(--electric-2);
+    }
+
+    .mouse-glow {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at 50% 50%, rgba(83,119,255,0.18) 0%, transparent 45%);
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+
+    #fixAllBar {
+      display: none;
+      margin-bottom: 24px;
+    }
+
+    .fixall-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 24px 28px;
+      background: var(--glass-bg);
+      border: 1px solid rgba(83,119,255,0.28);
+      box-shadow: 0 0 60px rgba(83,119,255,0.1);
+      border-radius: var(--r-xl);
+    }
+
+    .fixall-copy {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .fixall-title {
+      font-family: var(--font-sans);
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: var(--text-1);
+    }
+
+    .fixall-subtitle {
+      font-family: var(--font-sans);
+      color: var(--text-2);
+      font-size: 0.85rem;
+    }
+
+    .fixall-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    #fixAllBtn {
+      font-family: var(--font-sans);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 14px 32px;
+      border-radius: var(--r-md);
+      border: none;
+      color: white;
+      background: linear-gradient(135deg, #5377ff, #3a5bd9);
+      box-shadow: 0 4px 24px rgba(83,119,255,0.4);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    #fixAllStatus {
+      font-family: 'DM Mono', monospace;
+      color: var(--emerald);
+      font-size: 0.95rem;
+    }
+
+    .score-card {
+      padding: var(--space-8);
+      margin-bottom: var(--space-6);
+      background: var(--glass-bg);
+      border-radius: var(--r-xl);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow);
+      animation: fadeDown 0.6s ease both;
+    }
+
+    .score-card h2 {
+      font-family: var(--font-serif);
+      font-size: 1.95rem;
+      margin-bottom: var(--space-5);
+      color: var(--text-primary);
+      font-weight: 700;
+    }
+
+    .summary-text {
+      background: var(--surface-secondary);
+      border-radius: var(--r-lg);
+      padding: var(--space-5) var(--space-6);
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      line-height: 1.8;
+      color: var(--text-primary);
+      margin-bottom: var(--space-7);
+      border: 1px solid var(--border-color);
+    }
+
+    .score-display {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: var(--space-4);
+      margin-bottom: var(--space-7);
+    }
+
+    .score-item {
+      padding: var(--space-5);
+      border-radius: var(--r-lg);
+      background: var(--surface-primary);
+      border: 1px solid var(--border-color);
+      backdrop-filter: var(--glass-blur);
+      position: relative;
+      overflow: hidden;
+      transition: all var(--transition-base);
+    }
+
+    .score-item:hover {
+      border-color: var(--primary-light);
+      box-shadow: 0 12px 48px rgba(83,119,255,0.15);
+    }
+
+    .score-item.highlight {
+      border-color: var(--primary);
+      box-shadow: 0 0 30px rgba(83,119,255,0.2);
+    }
+
+    .score-item::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.04), transparent);
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    .score-label {
+      font-family: var(--font-sans);
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      font-weight: 700;
+      margin-bottom: var(--space-3);
+    }
+
+    .score-number {
+      font-family: var(--font-serif);
+      font-size: clamp(2.2rem, 4vw, 3.4rem);
+      font-weight: 700;
+      margin-bottom: var(--space-3);
+      display: block;
+      color: var(--primary-light);
+    }
+
+    .compliance-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 130px;
+      padding: var(--space-2) var(--space-4);
+      border-radius: 999px;
+      font-family: var(--font-sans);
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: white;
+      margin-bottom: var(--space-3);
+      transition: all var(--transition-fast);
+    }
+
+    .compliance-badge:hover {
+      transform: scale(1.05);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .stat-box {
+      background: var(--surface-primary);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--r-md);
+      padding: 20px;
+      font-family: var(--font-mono);
+      color: var(--text-1);
+    }
+
+    .stat-number {
+      font-family: 'Instrument Serif', serif;
+      font-size: 2.3rem;
+      color: var(--electric-2);
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .stat-label {
+      font-family: var(--font-sans);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--text-2);
+    }
+
+    .issues-panel {
+      padding: var(--space-8);
+      margin-bottom: var(--space-6);
+      background: var(--glass-bg);
+      border-radius: var(--r-xl);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow);
+    }
+
+    .issues-panel h2 {
+      font-family: var(--font-serif);
+      font-size: 1.5rem;
+      margin-bottom: var(--space-5);
+      color: var(--text-primary);
+      font-weight: 700;
+    }
+
+    .filter-row {
+      display: flex;
+      gap: var(--space-3);
+      flex-wrap: wrap;
+      margin-bottom: var(--space-6);
+    }
+
+    .filter-btn {
+      font-family: var(--font-sans);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-secondary);
+      background: var(--surface-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 999px;
+      padding: var(--space-2) var(--space-4);
+      cursor: pointer;
+      transition: all var(--transition-base);
+      font-weight: 600;
+    }
+
+    .filter-btn:hover {
+      transform: translateY(-1px);
+      border-color: var(--primary-light);
+      color: var(--primary);
+    }
+
+    .filter-btn:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    .filter-btn.active {
+      background: var(--primary-light-bg);
+      border-color: var(--primary);
+      color: var(--primary);
+      box-shadow: 0 0 20px rgba(83,119,255,0.2);
+    }
+
+    .issues-list {
+      display: grid;
+      gap: var(--space-4);
+    }
+
+    .issue-card {
+      position: relative;
+      padding: var(--space-6);
+      border-radius: var(--r-lg);
+      background: var(--surface-secondary);
+      border: 1px solid var(--border-color);
+      border-left: 4px solid var(--primary);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      overflow: hidden;
+      transition: all var(--transition-base);
+    }
+
+    .issue-card.critical {
+      border-left-color: var(--error);
+      background: linear-gradient(to right, rgba(239,68,68,0.05), transparent);
+    }
+    .issue-card.high {
+      border-left-color: var(--warning);
+      background: linear-gradient(to right, rgba(245,158,11,0.05), transparent);
+    }
+    .issue-card.medium {
+      border-left-color: #f59e0b;
+      background: linear-gradient(to right, rgba(245,158,11,0.04), transparent);
+    }
+    .issue-card.low {
+      border-left-color: var(--info);
+      background: linear-gradient(to right, rgba(6,182,212,0.04), transparent);
+    }
+
+    .issue-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--primary-light);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+    }
+
+    .issue-card:focus-within {
+      box-shadow: 0 0 0 2px var(--bg-dark), 0 0 0 4px var(--primary);
+    }
+
+    .issue-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: var(--space-4);
+      margin-bottom: var(--space-4);
+    }
+
+    .issue-title {
+      font-family: var(--font-serif);
+      font-size: 1.2rem;
+      line-height: 1.3;
+      color: var(--text-primary);
+      margin-bottom: var(--space-2);
+      font-weight: 700;
+    }
+
+    .severity-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      border-radius: 999px;
+      font-family: var(--font-sans);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: all var(--transition-fast);
+    }
+
+    .severity-badge.critical {
+      color: var(--error);
+      border-color: rgba(239,68,68,0.3);
+      background: rgba(239,68,68,0.1);
+    }
+    .severity-badge.high {
+      color: var(--warning);
+      border-color: rgba(245,158,11,0.3);
+      background: rgba(245,158,11,0.1);
+    }
+    .severity-badge.medium {
+      color: #f59e0b;
+      border-color: rgba(245,158,11,0.2);
+      background: rgba(245,158,11,0.08);
+    }
+    .severity-badge.low {
+      color: var(--info);
+      border-color: rgba(6,182,212,0.3);
+      background: rgba(6,182,212,0.1);
+    }
+
+    .wcag-info {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: var(--space-3);
+      margin: var(--space-4) 0;
+    }
+
+    .wcag-badge {
+      background: var(--surface-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--r-sm);
+      padding: var(--space-3) var(--space-4);
+      font-family: var(--font-mono);
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .wcag-badge strong {
+      display: block;
+      color: var(--info);
+      margin-bottom: var(--space-2);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .issue-description {
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-bottom: var(--space-4);
+      font-size: 0.95rem;
+    }
+
+    .fix-section {
+      background: rgba(16,185,129,0.06);
+      border: 1px solid rgba(16,185,129,0.2);
+      border-radius: var(--r-lg);
+      padding: var(--space-4);
+      margin-bottom: var(--space-4);
+    }
+
+    .fix-section strong {
+      display: block;
+      color: var(--success);
+      font-family: var(--font-sans);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: var(--space-3);
+      font-weight: 700;
+    }
+
+    .fix-section p {
+      color: var(--text-secondary);
+      line-height: 1.7;
+      font-size: 0.95rem;
+    }
+
+    .code-fix {
+      background: var(--surface-primary);
+      color: var(--info);
+      padding: var(--space-4);
+      border-radius: var(--r-lg);
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      line-height: 1.6;
+      margin-top: var(--space-3);
+      border: 1px solid var(--border-color);
+      border-left: 3px solid var(--info);
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+
+    .code-label {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+      margin-bottom: var(--space-2);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .issue-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-3);
+      margin-bottom: var(--space-5);
+    }
+
+    .copy-btn,
+    .patch-btn,
+    .ai-fix-btn {
+      font-family: var(--font-sans);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--r-md);
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      background: var(--surface-primary);
+      color: var(--text-secondary);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .copy-btn:hover,
+    .patch-btn:hover {
+      transform: translateY(-2px);
+      border-color: var(--primary-light);
+      color: var(--primary);
+      background: var(--primary-light-bg);
+    }
+
+    .copy-btn:focus-visible,
+    .patch-btn:focus-visible,
+    .ai-fix-btn:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    .ai-fix-btn {
+      background: linear-gradient(135deg, var(--primary), #3a5bd9);
+      color: white;
+      border: none;
+      box-shadow: 0 4px 16px rgba(83,119,255,0.3);
+    }
+
+    .ai-fix-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(83,119,255,0.4);
+    }
+
+    .copy-btn:disabled,
+    .patch-btn:disabled,
+    .ai-fix-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .patch-panel,
+    .html-snippet {
+      display: none;
+      background: var(--surface-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--r-lg);
+      padding: var(--space-4);
+      margin-bottom: var(--space-4);
+      font-family: var(--font-mono);
+      color: var(--text-secondary);
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+
+    .ai-suggestion {
+      background: rgba(59,130,246,0.1);
+      border: 1px solid rgba(59,130,246,0.2);
+      padding: var(--space-4);
+      border-radius: var(--r-lg);
+      margin-bottom: var(--space-4);
+      color: var(--text-secondary);
+    }
+
+    .ai-suggestion strong {
+      color: var(--primary);
+      display: block;
+      margin-bottom: var(--space-2);
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    .ai-suggestion p {
+      line-height: 1.7;
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+    }
+
+    .fix-status {
+      color: var(--text-tertiary);
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      margin-bottom: var(--space-3);
+    }
+
+    .nodes-affected {
+      color: var(--text-tertiary);
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      margin-top: var(--space-2);
+    }
+
+    .expand-btn {
+      color: var(--primary);
+      text-decoration: none;
+      font-family: var(--font-sans);
+      font-weight: 700;
+      transition: all var(--transition-fast);
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    .expand-btn:hover {
+      color: var(--primary-light);
+      transform: translateX(2px);
+    }
+
+    .expand-btn:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    #loading {
+      display: none;
+      text-align: center;
+      padding: var(--space-12) var(--space-10);
+      background: var(--glass-bg);
+      border-radius: var(--r-xl);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow);
+      margin-bottom: var(--space-6);
+      animation: fadeDown 0.6s ease both;
+    }
+
+    .spinner {
+      position: relative;
+      width: 64px;
+      height: 64px;
+      margin: 0 auto var(--space-6);
+    }
+
+    .spinner::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 2px solid rgba(255,255,255,0.06);
+      border-radius: 50%;
+    }
+
+    .spinner::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 2px solid transparent;
+      border-top-color: var(--primary);
+      border-right-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1.2s linear infinite;
+    }
+
+    #loadMsg {
+      font-family: var(--font-sans);
+      color: var(--text-primary);
+      font-size: 1rem;
+      opacity: 1;
+      transition: opacity 0.3s ease;
+      font-weight: 600;
+    }
+
+    .dot-row {
+      display: flex;
+      justify-content: center;
+      gap: var(--space-3);
+      margin-top: var(--space-4);
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      opacity: 0.22;
+      animation: dotPulse 1.2s infinite ease-in-out;
+    }
+
+    .dot:nth-child(1) { background: var(--primary); }
+    .dot:nth-child(2) { background: var(--accent); animation-delay: 0.2s; }
+    .dot:nth-child(3) { background: var(--info); animation-delay: 0.4s; }
+
+    .dashboard-panel,
+    #logsDashboard {
+      padding: var(--space-8);
+      margin-bottom: var(--space-6);
+      background: var(--glass-bg);
+      border-radius: var(--r-xl);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow);
+    }
+
+    .dashboard-panel h2,
+    #logsDashboard h2 {
+      font-family: var(--font-serif);
+      font-size: 1.6rem;
+      color: var(--text-primary);
+      margin-bottom: var(--space-3);
+      font-weight: 700;
+    }
+
+    .dashboard-note {
+      color: var(--text-secondary);
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+      margin-bottom: var(--space-5);
+      line-height: 1.7;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--space-4);
+      margin-bottom: var(--space-6);
+    }
+
+    .dashboard-card {
+      padding: var(--space-5);
+      border-radius: var(--r-lg);
+      background: var(--surface-primary);
+      border: 1px solid var(--border-color);
+      text-align: center;
+      min-height: 120px;
+      transition: all var(--transition-base);
+    }
+
+    .dashboard-card:hover {
+      border-color: var(--primary-light);
+      box-shadow: 0 8px 24px rgba(83,119,255,0.1);
+    }
+
+    .dashboard-card strong {
+      display: block;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin-bottom: var(--space-3);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-family: var(--font-sans);
+    }
+
+    .dashboard-value {
+      font-family: var(--font-serif);
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary);
+      line-height: 1.1;
+    }
+
+    .dashboard-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: var(--space-4);
+      margin-top: var(--space-6);
+    }
+
+    .dashboard-box {
+      padding: var(--space-4);
+      border-radius: var(--r-lg);
+      background: var(--surface-primary);
+      border: 1px solid var(--border-color);
+      font-family: var(--font-mono);
+      color: var(--text-secondary);
+      transition: all var(--transition-base);
+    }
+
+    .dashboard-box:hover {
+      border-color: var(--primary-light);
+      box-shadow: 0 8px 20px rgba(83,119,255,0.1);
+    }
+
+    .dashboard-box strong {
+      display: block;
+      margin-bottom: var(--space-2);
+      color: var(--text-tertiary);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-family: var(--font-sans);
+      font-size: 0.75rem;
+    }
+
+    .dashboard-box span {
+      color: var(--primary-light);
+      font-size: 1.3rem;
+      font-family: var(--font-serif);
+      font-weight: 700;
+    }
+
+    .button-row {
+      display: flex;
+      gap: var(--space-3);
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      margin-top: var(--space-3);
+    }
+
+    .header-actions {
+      display: flex;
+      justify-content: center;
+      gap: var(--space-4);
+      flex-wrap: wrap;
+      margin-top: var(--space-7);
+    }
+
+    .nav-button {
+      font-family: var(--font-sans);
+      font-weight: 700;
+      border-radius: 999px;
+      padding: var(--space-2) var(--space-5);
+      color: white;
+      text-decoration: none;
+      background: linear-gradient(135deg, var(--primary), #3a5bd9);
+      box-shadow: 0 4px 16px rgba(83,119,255,0.3);
+      transition: all var(--transition-base);
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .nav-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(83,119,255,0.4);
+    }
+
+    .nav-button:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    .error-box {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: var(--r-lg);
+      padding: var(--space-6);
+      color: var(--error);
+    }
+
+    .error-box strong {
+      display: block;
+      font-size: 1.1rem;
+      margin-bottom: var(--space-2);
+      font-weight: 700;
+      font-family: 'Syne', sans-serif;
+    }
+
+    @media (max-width: 680px) {
+      header {
+        padding: var(--space-8) 0 var(--space-6);
+      }
+
+      h1 {
+        font-size: clamp(2.2rem, 8vw, 4.5rem);
+      }
+
+      .input-row {
+        flex-direction: column;
+      }
+
+      .score-display {
+        grid-template-columns: 1fr;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .issues-panel {
+        padding: var(--space-6) var(--space-5);
+      }
+
+      .glass,
+      .scanner-panel,
+      .score-card,
+      .dashboard-panel,
+      #logsDashboard {
+        padding: var(--space-6) var(--space-5);
+      }
+
+      .fixall-card {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .header-actions {
+        justify-content: center;
+      }
+
+      .issue-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      #fixAllBar {
+        padding: var(--space-5);
+      }
+    }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes dotPulse {
+      0%,100% { opacity: 0.2; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.5); }
+    }
+
+    @keyframes meshMove {
+      from { transform: translate(0,0) rotate(0deg); }
+      to { transform: translate(3%,2%) rotate(2deg); }
+    }
+
+    @keyframes beam {
+      from { left: -100%; }
+      to { left: 150%; }
+    }
+
+    @keyframes pulseGlow {
+      0%,100% { box-shadow: 0 4px 24px rgba(83,119,255,0.4); }
+      50% { box-shadow: 0 4px 40px rgba(83,119,255,0.65); }
+    }
+
+    @keyframes orbFloat1 {
+      0%,100% { transform: translate(0,0); }
+      50% { transform: translate(30px, -30px); }
+    }
+
+    @keyframes orbFloat2 {
+      0%,100% { transform: translate(0,0); }
+      50% { transform: translate(-40px, 20px); }
+    }
+
+    @keyframes orbFloat3 {
+      0%,100% { transform: translate(0,0); }
+      50% { transform: translate(45px, -20px); }
+    }
+
+    @keyframes orbFloat4 {
+      0%,100% { transform: translate(0,0); }
+      50% { transform: translate(-25px, 40px); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="bg">
+    <div class="o1"></div>
+    <div class="o2"></div>
+    <div class="o3"></div>
+    <div class="o4"></div>
+    <div class="scan-beam"></div>
+  </div>
+
+  <div class="dline dl1"></div>
+  <div class="dline dl2"></div>
+  <div class="dline dl3"></div>
+
+  <div class="container">
+    <header>
+      <div class="badge">? WCAG 2.1 Certified Engine</div>
+      <h1>AccessiScan</h1>
+      <p>AI-powered automated WCAG 2.1 accessibility auditor for fast website compliance analysis.</p>
+      <div class="header-actions">
+        <a href="login.html" class="nav-button">Sign In / Register</a>
+        <a href="developer.html" class="nav-button">Developer Dashboard</a>
+      </div>
+    </header>
+
+    <section class="scanner-panel glass">
+      <div class="label-row">
+        <div class="field-label">TARGET URL</div>
+      </div>
+      <div class="input-row">
+        <input id="url" type="text" placeholder="Enter website URL (e.g., example.com)">
+        <button id="scanBtn" onclick="startScan()">Scan</button>
+      </div>
+      <p class="tip-text"><span>?</span><span>Enter any website URL to get instant accessibility analysis with AI-powered fix suggestions.</span></p>
+    </section>
+
+    <section id="fixAllBar" class="glass">
+      <div class="fixall-card">
+        <div class="fixall-copy">
+          <div class="fixall-title">? One-Click Fix All</div>
+          <div class="fixall-subtitle">Apply intelligent fixes to all detected issues with one action.</div>
+        </div>
+        <div class="fixall-actions">
+          <span id="fixAllStatus">Ready</span>
+          <button id="fixAllBtn" type="button" onclick="fixAll()">Fix All</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="loading" class="glass">
+      <div class="spinner"></div>
+      <div id="loadMsg">Crawling target URL�</div>
+      <div class="dot-row">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+    </section>
+
+    <div id="results"></div>
+
+    <section id="dbDashboard" class="dashboard-panel glass">
+      <h2>Accessibility Dashboard</h2>
+      <p class="dashboard-note">Track scan summary metrics and recent results in one polished view.</p>
+      <div class="dashboard-grid">
+        <div class="dashboard-card"><strong>WCAG Score</strong><div id="dashScore" class="dashboard-value">--</div></div>
+        <div class="dashboard-card"><strong>Current Level</strong><div id="dashLevel" class="dashboard-value">--</div></div>
+        <div class="dashboard-card"><strong>Issues Found</strong><div id="dashIssues" class="dashboard-value">--</div></div>
+        <div class="dashboard-card"><strong>Checks Passed</strong><div id="dashPasses" class="dashboard-value">--</div></div>
+        <div class="dashboard-card"><strong>Last Scan</strong><div id="dashLastScan" class="dashboard-value">None</div></div>
+        <div class="dashboard-card"><strong>Last URL</strong><div id="dashLastUrl" class="dashboard-value">--</div></div>
+      </div>
+    </section>
+
+    <section id="logsDashboard" class="dashboard-panel glass" style="display:none;">
+      <h2>Dashboard Access Logs</h2>
+      <p class="dashboard-note">Track internal API access and usage patterns for recent dashboard events.</p>
+      <div id="dashboardLogsList"></div>
+    </section>
+
+    <section class="dashboard-panel glass">
+      <div class="dashboard-row">
+        <div class="dashboard-box"><strong>Total Scans</strong><span id="dbTotalScans">--</span></div>
+        <div class="dashboard-box"><strong>Severe Issues</strong><span id="dbSevereIssues">--</span></div>
+        <div class="dashboard-box"><strong>Average Score</strong><span id="dbAvgScore">--</span></div>
+        <div class="dashboard-box"><strong>Most Recent Scan</strong><span id="dbLastScan">--</span></div>
+      </div>
+      <div class="button-row">
+        <button class="patch-btn" type="button" onclick="toggleDashboardView()">Toggle Logs / Analytics</button>
+      </div>
+    </section>
+
+    <section class="dashboard-panel glass">
+      <h2>Recent Severe Issues</h2>
+      <div id="severeIssuesList"></div>
+    </section>
+
+    <section class="dashboard-panel glass">
+      <h2>Recent Scans</h2>
+      <div id="recentScansList"></div>
+    </section>
+  </div>
+
+  <script>
+  const BASE_URL = "http://localhost:3000";
+  let currentResults = null;
+
+  async function startScan() {
+    const url = document.getElementById("url").value.trim();
+    
+    if (!url) {
+      alert("Please enter a URL");
+      return;
+    }
+
+    document.getElementById("loading").style.display = "block";
+    document.getElementById("results").style.display = "none";
+    document.getElementById("scanBtn").disabled = true;
+
+    try {
+      const response = await fetch(`${BASE_URL}/scan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        showError(data); // Pass full error object
+        return;
+      }
+
+      currentResults = data;
+      displayResults(data);
+      updateDashboard(data);
+    } catch (err) {
+      showError({ error: err.message, suggestions: ["Check your internet connection", "Try again in a moment"] });
+    } finally {
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("scanBtn").disabled = false;
+    }
+  }
+
+  function displayResults(data) {
+    const resultsDiv = document.getElementById("results");
+    const compliance = data.compliance;
+
+    let html = `
+      <div class="score-card">
+        <h2>?? Scan Results</h2>
+        <div style="background: rgba(255,243,199,0.2); border: 1px solid #f59e0b; padding: 12px; border-radius: 6px; margin-bottom: 20px; color: #f59e0b;">
+          <strong style="display:block; margin-bottom:8px;">?? Demo Mode:</strong> This shows sample accessibility issues with all features enabled. Try clicking the buttons below!
+        </div>
+        <p class="summary-text">
+          <strong>Scanned URL:</strong> ${data.url}<br>
+          <strong>Scan Date:</strong> ${new Date(data.scanDate).toLocaleString()}
+        </p>
+
+        <div class="score-display">
+          <div class="score-item highlight">
+            <div class="score-label">WCAG 2.1 Score</div>
+            <div class="score-number metric-num" style="color: ${compliance.color};">${data.wcagScore}</div>
+            <div class="compliance-badge" style="background-color: ${compliance.color};">Level ${compliance.level}</div>
+            <div class="score-label">${compliance.status}</div>
+          </div>
+
+          <div class="score-item">
+            <div class="score-label">Critical Issues</div>
+            <div class="score-number metric-num" style="color: #ef4444;">${data.violations.filter(v => v.severity === 'critical').length}</div>
+          </div>
+
+          <div class="score-item">
+            <div class="score-label">High Issues</div>
+            <div class="score-number metric-num" style="color: #f97316;">${data.violations.filter(v => v.severity === 'high').length}</div>
+          </div>
+
+          <div class="score-item">
+            <div class="score-label">Total Issues</div>
+            <div class="score-number metric-num">${data.totalIssues}</div>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-box"><span class="stat-number metric-num">${data.violations.length}</span><div class="stat-label">Issues Found</div></div>
+          <div class="stat-box"><span class="stat-number metric-num">${data.passes}</span><div class="stat-label">Checks Passed</div></div>
+        </div>
+      </div>
+
+      <div class="score-card">
+        <h2>?? Fix These First</h2>
+        <div class="issues-list" id="priorityIssuesList">
+          ${generatePriorityHTML(data.violations)}
+        </div>
+      </div>
+
+      <div class="score-card">
+        <h2>?? Issues by Severity</h2>
+        <div class="filter-row">
+          <button class="filter-btn active" onclick="filterIssues('all')">All Issues</button>
+          <button class="filter-btn" onclick="filterIssues('critical')">?? Critical</button>
+          <button class="filter-btn" onclick="filterIssues('high')">?? High</button>
+          <button class="filter-btn" onclick="filterIssues('medium')">?? Medium</button>
+        </div>
+
+        <div class="issues-list" id="issuesList">
+          ${generateIssuesHTML(data.violations, 'all')}
+        </div>
+      </div>
+    `;
+
+    resultsDiv.innerHTML = html;
+    resultsDiv.style.display = "block";
+
+    // Scroll to results
+    resultsDiv.scrollIntoView({ behavior: 'smooth' });
+
+    // Fetch AI suggestions for all issues
+    fetchAISuggestionsForAllIssues(data.violations);
+  }
+
+  function updateDashboard(data) {
+    document.getElementById("dashScore").textContent = data.wcagScore;
+    document.getElementById("dashLevel").textContent = `Level ${data.compliance.level}`;
+    document.getElementById("dashIssues").textContent = data.totalIssues;
+    document.getElementById("dashPasses").textContent = data.passes;
+    document.getElementById("dashLastScan").textContent = new Date(data.scanDate).toLocaleString();
+    document.getElementById("dashLastUrl").textContent = data.url;
+
+    // Also refresh database dashboard
+    loadDatabaseDashboard();
+  }
+
+  async function fetchAISuggestionsForAllIssues(violations) {
+    const suggestionPromises = violations.map(violation =>
+      fetchAISuggestion(violation)
+        .then(suggestion => ({
+          issueId: violation.id,
+          issueIndex: violation.index,
+          suggestion: suggestion
+        }))
+        .catch(err => ({
+          issueId: violation.id,
+          issueIndex: violation.index,
+          suggestion: null,
+          error: err.message
+        }))
+    );
+
+    const results = await Promise.allSettled(suggestionPromises);
+
+    results.forEach(result => {
+      if (result.status === 'fulfilled') {
+        const { issueId, issueIndex, suggestion } = result.value;
+        updateIssueSuggestion(issueId, issueIndex, suggestion);
+      }
+    });
+  }
+
+  async function fetchAISuggestion(issue) {
+    try {
+      const response = await fetch(`${BASE_URL}/fix-suggestion`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          issueId: issue.id,
+          title: issue.title,
+          description: issue.description,
+          htmlSnippet: issue.htmlSnippet,
+          wcagLevel: issue.wcagLevel,
+          severity: issue.severity,
+          url: currentResults?.url || ""
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch suggestion for ${issue.id}`);
+      }
+
+      return await response.json();
+    } catch (err) {
+      console.warn(`Could not fetch AI suggestion for ${issue.id}:`, err);
+      const predefined = {
+        explanation: `Fallback fix: ${issue.description}`,
+        suggestedCode: `<!-- TODO: Fix ${issue.id} - ${issue.description} -->\n${issue.htmlSnippet || "No code available"}`,
+        wrong: issue.htmlSnippet || "",
+        fileType: "HTML"
+      };
+      return predefined;
+    }
+  }
+
+  function updateIssueSuggestion(issueId, issueIndex, suggestion) {
+    const issueCard = document.querySelector(`[data-issue-id="${issueId}"][data-issue-index="${issueIndex}"]`);
+    if (!issueCard) return;
+
+    const aiContainer = issueCard.querySelector('.ai-suggestion-container');
+    const statusBox = issueCard.querySelector('.fix-status');
+    const copyBtn = issueCard.querySelector('.copy-btn');
+    const patchBtn = issueCard.querySelector('.patch-btn');
+
+    if (aiContainer && suggestion) {
+      aiContainer.innerHTML = `
+        <div class="ai-suggestion">
+          <strong>?? AI-Powered Suggestion:</strong>
+          <p><strong>Why:</strong> ${suggestion.explanation}</p>
+          ${suggestion.wrong ? `<div class="code-fix"><div class="code-label">? Avoid:</div>${suggestion.wrong}</div>` : ''}
+          ${suggestion.suggestedCode ? `<div class="code-fix"><div class="code-label">? Suggested Fix:</div>${suggestion.suggestedCode}</div>` : ''}
+        </div>
+      `;
+    }
+
+    if (statusBox) {
+      statusBox.textContent = suggestion ? "AI fix ready � copy or download it." : "AI fix unavailable.";
+    }
+
+    if (copyBtn) {
+      copyBtn.disabled = !suggestion?.suggestedCode;
+    }
+    if (patchBtn) {
+      patchBtn.disabled = !suggestion?.suggestedCode;
+    }
+
+    if (currentResults) {
+      const originalIssue = currentResults.violations.find(v => v.id === issueId && v.index === issueIndex);
+      if (originalIssue) {
+        originalIssue.suggestion = suggestion;
+      }
+    }
+  }
+
+  function generatePriorityHTML(violations) {
+    const topIssues = violations.slice(0, 3);
+    if (topIssues.length === 0) {
+      return '<p style="color: #10b981; font-size: 1.1em; text-align: center; padding: 20px;">? No priority issues found.</p>';
+    }
+
+    return topIssues.map(issue => `
+      <div class="issue-card ${issue.severity}" style="padding: 18px; border-left-width: 6px;">
+        <div class="issue-header">
+          <div>
+            <div class="issue-title">${issue.title}</div>
+            <span class="severity-badge ${issue.severity}">${issue.severity} Priority</span>
+          </div>
+        </div>
+        <p class="issue-description">${issue.description}</p>
+        <div class="wcag-info">
+          <div class="wcag-badge"><strong>WCAG</strong> ${issue.wcagLevel}</div>
+          <div class="wcag-badge"><strong>Criterion</strong> ${issue.criterion}</div>
+          <div class="wcag-badge"><strong>Nodes</strong> ${issue.nodes}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function togglePatch(index) {
+    const issueCard = document.querySelector(`[data-issue-index="${index}"]`);
+    if (!issueCard) return;
+
+    const panel = issueCard.querySelector(`#patchPanel-${index}`);
+    const button = issueCard.querySelector('.patch-toggle');
+    const before = issueCard.dataset.patchBefore || '';
+    const after = issueCard.dataset.patchAfter || '';
+
+    if (!panel) return;
+    const isVisible = panel.style.display === 'block';
+
+    if (isVisible) {
+      panel.style.display = 'none';
+      button.textContent = 'Show Fix Patch';
+      return;
+    }
+
+    panel.style.display = 'block';
+    button.textContent = 'Hide Fix Patch';
+    panel.innerHTML = `
+      <div style="font-size: 0.95em; color: #eef0f8; font-weight: 600; margin-bottom: 10px;">Before / After Patch</div>
+      <div class="code-block"><div class="code-label">Before:</div><pre>${escapeHtml(before)}</pre></div>
+      <div class="code-block"><div class="code-label">After:</div><pre>${escapeHtml(after)}</pre></div>
+    `;
+  }
+
+  function toggleHtmlSnippet(index) {
+    const issueCard = document.querySelector(`[data-issue-index="${index}"]`);
+    if (!issueCard) return;
+
+    const panel = issueCard.querySelector(`#snippetPanel-${index}`);
+    const button = issueCard.querySelector('.html-toggle');
+    const snippet = issueCard.dataset.htmlSnippet || '';
+
+    if (!panel) return;
+    const isVisible = panel.style.display === 'block';
+
+    if (isVisible) {
+      panel.style.display = 'none';
+      button.textContent = 'Show Affected Code';
+      return;
+    }
+
+    panel.style.display = 'block';
+    button.textContent = 'Hide Affected Code';
+    panel.innerHTML = `
+      <div class="code-label">Affected HTML Snippet:</div>
+      <pre><code>${escapeHtml(snippet)}</code></pre>
+    `;
+  }
+
+  async function fixNowAI(index, issueId, title, description, htmlSnippet) {
+    const issueCard = document.querySelector(`[data-issue-index="${index}"]`);
+    if (!issueCard) return;
+
+    const aiBtn = issueCard.querySelector('.ai-fix-btn');
+    const originalText = aiBtn.textContent;
+    aiBtn.textContent = '? Generating...';
+    aiBtn.disabled = true;
+
+    try {
+      const response = await fetch(`${BASE_URL}/fix`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: issueId,
+          title: title || issueId,
+          description: description,
+          htmlSnippet: htmlSnippet || ''
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate fix');
+      }
+
+      const fix = await response.json();
+
+      showFixModal(fix, title, description, htmlSnippet);
+
+      aiBtn.textContent = '? Fix Generated';
+      setTimeout(() => {
+        aiBtn.textContent = originalText;
+        aiBtn.disabled = false;
+      }, 3000);
+
+    } catch (err) {
+      console.error('AI fix error:', err);
+      aiBtn.textContent = '? Error';
+      setTimeout(() => {
+        aiBtn.textContent = originalText;
+        aiBtn.disabled = false;
+      }, 3000);
+    }
+  }
+
+  function showFixModal(fix, title, description, htmlSnippet) {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      padding: 20px;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    `;
+
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = `
+      background: linear-gradient(135deg, rgba(10, 13, 24, 0.95), rgba(15, 20, 35, 0.92));
+      border: 1px solid rgba(83, 119, 255, 0.2);
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 900px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5),
+                  0 0 60px rgba(83, 119, 255, 0.1);
+      position: relative;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    `;
+
+    modalContent.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #f3f4f6; padding-bottom: 15px;">
+        <h2 style="margin: 0; color: #1f2937; font-size: 24px; font-weight: 600;">?? AI-Generated Fix</h2>
+        <button onclick="this.closest('.modal-overlay').remove()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #6b7280; padding: 5px;">�</button>
+      </div>
+
+      <div style="margin-bottom: 24px;">
+        <h3 style="color: #f5f7fb; font-size: 18px; margin-bottom: 8px; font-weight: 700; font-family: 'Syne', sans-serif;">${escapeHtml(title)}</h3>
+        <p style="color: rgba(245, 247, 251, 0.7); line-height: 1.7; margin: 0; font-family: 'Syne', sans-serif;">${escapeHtml(description)}</p>
+      </div>
+
+      ${htmlSnippet ? `
+      <div style="margin-bottom: 24px;">
+        <h4 style="color: rgba(245, 247, 251, 0.9); font-size: 14px; margin-bottom: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-family: 'Syne', sans-serif;">📋 Original Code:</h4>
+        <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 12px; padding: 16px; font-family: 'DM Mono', monospace; font-size: 13px; color: rgba(239, 68, 68, 0.9); overflow-x: auto; white-space: pre-wrap;">
+          ${escapeHtml(htmlSnippet)}
+        </div>
+      </div>
+      ` : ''}
+
+      <div style="margin-bottom: 24px;">
+        <h4 style="color: rgba(245, 247, 251, 0.9); font-size: 14px; margin-bottom: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-family: 'Syne', sans-serif;">✅ Fixed Code:</h4>
+        <div style="background: rgba(16, 185, 129, 0.06); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 12px; padding: 18px; font-family: 'DM Mono', monospace; font-size: 13px; color: rgba(16, 185, 129, 0.95); overflow-x: auto; white-space: pre-wrap; border-left: 3px solid rgba(16, 185, 129, 0.5);">
+          ${escapeHtml(fix.fixedCode)}
+        </div>
+      </div>
+
+      <div style="margin-bottom: 24px;">
+        <h4 style="color: rgba(245, 247, 251, 0.9); font-size: 14px; margin-bottom: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-family: 'Syne', sans-serif;">💡 Explanation:</h4>
+        <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 12px; padding: 16px; color: rgba(147, 197, 253, 0.95); line-height: 1.7; font-family: 'Syne', sans-serif;">
+          ${escapeHtml(fix.explanation)}
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 12px; justify-content: flex-end; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+        <button onclick="copyToClipboard(\`${escapeHtml(fix.fixedCode).replace(/`/g, '\\`')}\`)"
+                style="padding: 12px 24px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s; font-family: 'Syne', sans-serif; font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em;">
+          📋 Copy Fixed Code
+        </button>
+        <button onclick="this.closest('.modal-overlay').remove()"
+                style="padding: 12px 24px; background: rgba(255, 255, 255, 0.1); color: rgba(245, 247, 251, 0.8); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s; font-family: 'Syne', sans-serif; font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em;">
+          Close
+        </button>
+      </div>
+    `;
+
+    modal.className = 'modal-overlay';
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+
+    const buttons = modalContent.querySelectorAll('button');
+    buttons.forEach(btn => {
+      if (btn.textContent.includes('Copy')) {
+        btn.onmouseover = () => btn.style.boxShadow = '0 8px 24px rgba(16, 185, 129, 0.3)';
+        btn.onmouseout = () => btn.style.boxShadow = 'none';
+      } else if (btn.textContent === 'Close') {
+        btn.onmouseover = () => btn.style.background = 'rgba(255, 255, 255, 0.15)';
+        btn.onmouseout = () => btn.style.background = 'rgba(255, 255, 255, 0.1)';
+      }
+    });
+  }
+
+  function copyToClipboard(text) {
+    navigator.clipboard.writeText(text)
+      .then(() => alert('? Fixed code copied to clipboard!'))
+      .catch(() => alert('? Failed to copy'));
+  }
+
+  function escapeHtmlAttr(str = "") {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function filterIssues(severity) {
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+
+    const filtered = severity === 'all' 
+      ? currentResults.violations 
+      : currentResults.violations.filter(v => v.severity === severity);
+
+    document.getElementById("issuesList").innerHTML = generateIssuesHTML(filtered, severity);
+  }
+
+  function escapeHtml(str = "") {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function copyFix(index) {
+    const issue = currentResults?.violations.find(v => v.index === index);
+    if (!issue?.suggestion?.suggestedCode) {
+      alert("AI fix is not ready yet.");
+      return;
+    }
+
+    navigator.clipboard.writeText(issue.suggestion.suggestedCode)
+      .then(() => {
+        alert("Fix copied to clipboard!");
+      })
+      .catch(() => {
+        alert("Could not copy the fix. Try again.");
+      });
+  }
+
+  async function downloadPatch(index) {
+    const issue = currentResults?.violations.find(v => v.index === index);
+    if (!issue?.suggestion?.suggestedCode) {
+      alert("AI fix is not ready yet.");
+      return;
+    }
+
+    const response = await fetch(`${BASE_URL}/patch-fix`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url: currentResults.url,
+        issueId: issue.id,
+        htmlSnippet: issue.htmlSnippet,
+        suggestedCode: issue.suggestion.suggestedCode
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      alert(`Patch download failed: ${err.error || 'Unknown error'}`);
+      return;
+    }
+
+    const blob = await response.blob();
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'accessibility-patch.html';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
+
+  function generateIssuesHTML(violations, filter) {
+    if (violations.length === 0) {
+      return '<p style="color: #10b981; font-size: 1.1em; text-align: center; padding: 20px;">? No issues found!</p>';
+    }
+
+    return violations.map((v, idx) => `
+      <div class="issue-card ${v.severity}" data-issue-id="${v.id}" data-issue-index="${v.index}"
+           data-html-snippet="${escapeHtml(v.htmlSnippet || '').replace(/\n/g, '&#10;')}"
+           data-patch-before="${escapeHtml(v.patch?.before || '').replace(/\n/g, '&#10;')}"
+           data-patch-after="${escapeHtml(v.patch?.after || '').replace(/\n/g, '&#10;')}">
+        <div class="issue-header">
+          <div>
+            <div class="issue-title">${v.title}</div>
+            <span class="severity-badge ${v.severity}">${v.severity} Impact</span>
+          </div>
+        </div>
+
+        <div class="issue-description">${v.description}</div>
+
+        <div class="wcag-info">
+          <div class="wcag-badge"><strong>WCAG Level</strong>${v.wcagLevel}</div>
+          <div class="wcag-badge"><strong>Criterion</strong>${v.criterion}</div>
+          <div class="wcag-badge"><strong>Impact</strong>${v.impact}</div>
+          <div class="wcag-badge"><strong>Affected</strong>${v.nodes} element${v.nodes > 1 ? 's' : ''}</div>
+        </div>
+
+        <div class="fix-section">
+          <strong>? How to Fix:</strong>
+          <p>${v.fix.explanation || v.fix.codeExample}</p>
+          ${v.fix.wrong ? `<div class="code-fix"><div class="code-label">? Wrong:</div>${v.fix.wrong}</div>` : ''}
+          ${v.fix.correct ? `<div class="code-fix"><div class="code-label">? Correct:</div>${v.fix.correct}</div>` : ''}
+          ${v.fix.fix && !v.fix.correct ? `<div class="code-fix"><div class="code-label">Suggested Code:</div>${v.fix.fix}</div>` : ''}
+
+          <div class="issue-actions">
+            <button class="patch-btn patch-toggle" type="button" onclick="togglePatch(${v.index})">Show Fix Patch</button>
+            <button class="patch-btn html-toggle" type="button" onclick="toggleHtmlSnippet(${v.index})">Show Affected Code</button>
+            <button class="patch-btn ai-fix-btn" type="button" onclick="fixNowAI(${v.index}, '${escapeHtmlAttr(v.id)}', '${escapeHtmlAttr(v.title)}', '${escapeHtmlAttr(v.description)}', '${escapeHtmlAttr(v.htmlSnippet || '')}')">? Fix Now</button>
+          </div>
+        </div>
+
+        <div class="patch-panel" id="patchPanel-${v.index}"></div>
+        <div class="html-snippet" id="snippetPanel-${v.index}"></div>
+
+        <div class="ai-suggestion-container">
+          <div class="ai-suggestion">
+            <span class="ai-loading">Fetching AI suggestion</span>
+          </div>
+        </div>
+
+        <div class="fix-status">AI fix loading...</div>
+        <button class="copy-btn" onclick="copyFix(${v.index})" disabled>Copy Fix</button>
+        <button class="patch-btn" onclick="downloadPatch(${v.index})" disabled>Download Patched File</button>
+
+        <div class="nodes-affected">?? ${v.nodes} element${v.nodes > 1 ? 's' : ''} affected on this page</div>
+        <a href="${v.helpUrl}" target="_blank" class="expand-btn">? Learn More</a>
+      </div>
+    `).join('');
+  }
+
+  function showError(data) {
+    const errorData = typeof data === 'string' ? { error: data, url: '' } : data;
+    
+    let suggestionsHTML = "";
+    
+    if (errorData.suggestions && errorData.suggestions.length > 0) {
+      suggestionsHTML = `
+        <div style="margin-top: 20px; background: rgba(254,243,199,0.2); padding: 16px; border-radius: 8px; border: 1px solid #fcd34d;">
+          <strong style="color: #92400e; display: block; margin-bottom: 10px;">?? Troubleshooting Tips:</strong>
+          <ul style="color: #78350f; margin-left: 20px; line-height: 1.8;">
+            ${errorData.suggestions.map(s => `<li>${s}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    let errorTypeHTML = "";
+    if (errorData.type) {
+      const errorColors = {
+        "TIMEOUT": "#3b82f6",
+        "CONNECTION_REFUSED": "#ef4444",
+        "DNS_ERROR": "#f97316",
+        "SSL_ERROR": "#8b5cf6",
+        "ACCESS_FORBIDDEN": "#ec4899",
+        "NOT_FOUND": "#f59e0b",
+        "PROXY_ERROR": "#06b6d4",
+        "NAVIGATION_ERROR": "#f97316"
+      };
+      errorTypeHTML = `
+        <span style="display: inline-block; background: ${errorColors[errorData.type] || '#6b7280'}; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85em; font-weight: 600; margin-top: 10px;">
+          ${errorData.type}
+        </span>
+      `;
+    }
+
+    document.getElementById("results").innerHTML = `
+      <div class="score-card">
+        <div class="error-box">
+          <strong>? Failed to Scan Website</strong>
+          ${errorTypeHTML}
+          <p style="margin-top: 12px; line-height: 1.6; color: #f8dee0;">
+            <strong>Error:</strong> ${errorData.error}
+          </p>
+          ${errorData.url ? `<p style="margin-top: 10px; color: #f1c0cb; font-size: 0.9em;"><strong>Scanned URL:</strong> <code style="background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 3px;">${errorData.url}</code></p>` : ''}
+        </div>
+        ${suggestionsHTML}
+        <div style="margin-top: 20px; padding: 16px; background: rgba(240,253,244,0.22); border-radius: 8px; border: 1px solid rgba(187,247,208,0.6);">
+          <strong style="color: #166534; display: block; margin-bottom: 8px;">?? What to Try:</strong>
+          <ul style="color: #15803d; margin-left: 20px; line-height: 1.8; font-size: 0.95rem;">
+            <li>Ensure the URL is correct (e.g., <code style="background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 3px;">example.com</code>)</li>
+            <li>Try loading the website manually in your browser first</li>
+            <li>Some websites block automated scanning</li>
+            <li>Try a different website to verify the scanner works</li>
+            <li>Check your internet connection</li>
+          </ul>
+        </div>
+      </div>
+    `;
+    document.getElementById("results").style.display = "block";
+    document.getElementById("results").scrollIntoView({ behavior: 'smooth' });
+  }
+
+  async function loadDatabaseDashboard() {
+    try {
+      const statsResponse = await fetch(`${BASE_URL}/api/dashboard/stats`);
+      const stats = await statsResponse.json();
+
+      document.getElementById("dbTotalScans").textContent = stats.totalScans;
+      document.getElementById("dbSevereIssues").textContent = stats.totalSevereIssues;
+      document.getElementById("dbAvgScore").textContent = stats.avgWcagScore;
+      document.getElementById("dbLastScan").textContent = stats.lastScanDate ? new Date(stats.lastScanDate).toLocaleString() : "None";
+
+      const severeResponse = await fetch(`${BASE_URL}/api/dashboard/severe-issues?limit=10`);
+      const severeIssues = await severeResponse.json();
+
+      const severeHtml = severeIssues.length > 0 ?
+        severeIssues.map(issue => `
+          <div style="background: rgba(255,255,255,0.06); border-radius: 6px; padding: 12px; margin-bottom: 10px; border-left: 4px solid ${issue.severity === 'critical' ? '#ef4444' : '#f97316'};">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+              <strong style="color: #eef0f8; font-size: 0.9em;">${issue.title}</strong>
+              <span style="background: ${issue.severity === 'critical' ? '#fee2e2' : '#ffedd5'}; color: ${issue.severity === 'critical' ? '#b91c1c' : '#b45309'}; padding: 2px 8px; border-radius: 4px; font-size: 0.75em; font-weight: 600;">
+                ${issue.severity.toUpperCase()}
+              </span>
+            </div>
+            <div style="color: #9ca3af; font-size: 0.8em; margin-bottom: 5px;">
+              ${issue.url} � ${new Date(issue.scanDate).toLocaleDateString()}
+            </div>
+            <div style="color: #dbeafe; font-size: 0.85em; line-height: 1.4;">
+              ${issue.description.substring(0, 100)}${issue.description.length > 100 ? '...' : ''}
+            </div>
+          </div>
+        `).join('') :
+        '<p style="color: #10b981; text-align: center; margin: 20px 0;">? No severe issues found yet</p>';
+
+      document.getElementById("severeIssuesList").innerHTML = severeHtml;
+
+      const scansResponse = await fetch(`${BASE_URL}/api/dashboard/recent-scans?limit=5`);
+      const recentScans = await scansResponse.json();
+
+      const scansHtml = recentScans.length > 0 ?
+        recentScans.map(scan => `
+          <div style="background: rgba(255,255,255,0.06); border-radius: 6px; padding: 12px; margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+              <strong style="color: #eef0f8; font-size: 0.9em;">${scan.url}</strong>
+              <span style="background: ${getComplianceColor(scan.complianceLevel)}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75em; font-weight: 600;">
+                ${scan.complianceLevel}
+              </span>
+            </div>
+            <div style="display: flex; gap: 15px; color: #9ca3af; font-size: 0.8em;">
+              <span>Score: ${scan.wcagScore}</span>
+              <span>Issues: ${scan.totalIssues}</span>
+              <span>Severe: ${scan.severeIssuesCount}</span>
+              <span>${new Date(scan.scanDate).toLocaleDateString()}</span>
+            </div>
+          </div>
+        `).join('') :
+        '<p style="color: #9ca3af; text-align: center; margin: 20px 0;">No scans performed yet</p>';
+
+      document.getElementById("recentScansList").innerHTML = scansHtml;
+      document.getElementById("dbDashboard").style.display = "block";
+    } catch (err) {
+      console.error("Error loading database dashboard:", err);
+      document.getElementById("severeIssuesList").innerHTML = '<p style="color: #ef4444; text-align: center;">Error loading dashboard data</p>';
+      document.getElementById("recentScansList").innerHTML = '<p style="color: #ef4444; text-align: center;">Error loading scan history</p>';
+    }
+  }
+
+  function toggleDashboardView() {
+    const dbDashboard = document.getElementById("dbDashboard");
+    const logsDashboard = document.getElementById("logsDashboard");
+
+    if (dbDashboard.style.display !== "none") {
+      dbDashboard.style.display = "none";
+      logsDashboard.style.display = "block";
+    } else {
+      logsDashboard.style.display = "none";
+      dbDashboard.style.display = "block";
+    }
+  }
+
+  async function loadDashboardLogs() {
+    try {
+      const logsResponse = await fetch(`${BASE_URL}/api/dashboard/logs?limit=20`);
+      const logs = await logsResponse.json();
+
+      const logsHtml = logs.length > 0 ?
+        logs.map(log => {
+          const statusColor = log.responseStatus >= 200 && log.responseStatus < 300 ? '#10b981' :
+                             log.responseStatus >= 400 ? '#ef4444' : '#f59e0b';
+          return `
+            <div style="background: rgba(255,255,255,0.06); border-radius: 6px; padding: 12px; margin-bottom: 8px; border-left: 4px solid ${statusColor};">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                <strong style="color: #eef0f8; font-size: 0.9em;">${log.endpoint}</strong>
+                <div style="text-align: right;">
+                  <span style="background: ${statusColor}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75em; font-weight: 600;">
+                    ${log.responseStatus}
+                  </span>
+                  <div style="color: #9ca3af; font-size: 0.7em; margin-top: 2px;">${log.responseTime}ms</div>
+                </div>
+              </div>
+              <div style="display: flex; flex-wrap: wrap; gap: 14px; color: #9ca3af; font-size: 0.8em; margin-bottom: 5px;">
+                <span><strong>Method:</strong> ${log.method}</span>
+                <span><strong>IP:</strong> ${log.ipAddress}</span>
+              </div>
+              <div style="color: #dbeafe; font-size: 0.8em; line-height: 1.4;">
+                <strong>Time:</strong> ${new Date(log.timestamp).toLocaleString()}<br>
+                <strong>User Agent:</strong> ${log.userAgent.substring(0, 80)}${log.userAgent.length > 80 ? '...' : ''}
+              </div>
+              ${Object.keys(log.queryParams).length > 0 ?
+                `<div style="color: #9ca3af; font-size: 0.75em; margin-top: 5px;"><strong>Query:</strong> ${JSON.stringify(log.queryParams)}</div>` : ''}
+            </div>
+          `;
+        }).join('') :
+        '<p style="color: #9ca3af; text-align: center; margin: 20px 0;">No dashboard logs found yet</p>';
+
+      document.getElementById("dashboardLogsList").innerHTML = logsHtml;
+      document.getElementById("logsDashboard").style.display = "block";
+    } catch (err) {
+      console.error("Error loading dashboard logs:", err);
+      document.getElementById("dashboardLogsList").innerHTML = '<p style="color: #ef4444; text-align: center;">Error loading dashboard logs</p>';
+    }
+  }
+
+  function getComplianceColor(level) {
+    const colors = {
+      'AAA': '#10b981',
+      'AA': '#f59e0b',
+      'A': '#f97316',
+      'Below A': '#ef4444'
+    };
+    return colors[level] || '#6b7280';
+  }
+
+  async function fixAll() {
+    document.getElementById('fixAllStatus').textContent = 'Applying fixes...';
+    document.getElementById('fixAllBtn').disabled = true;
+
+    try {
+      const response = await fetch(`${BASE_URL}/fix-all`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: document.getElementById('url').value.trim() })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Fix all failed');
+      }
+
+      document.getElementById('fixAllStatus').textContent = 'Fixes applied successfully';
+      alert('All available fixes have been applied.');
+    } catch (err) {
+      console.error('Fix all error:', err);
+      document.getElementById('fixAllStatus').textContent = 'Fix all failed';
+      alert('Unable to apply all fixes.');
+    } finally {
+      document.getElementById('fixAllBtn').disabled = false;
+    }
+  }
+
+  function showFixAllBar() {
+    const bar = document.getElementById('fixAllBar');
+    bar.style.display = 'block';
+  }
+
+  function animateRing(score) {
+    return; // placeholder for ring animation logic if needed
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadDatabaseDashboard();
+    loadDashboardLogs();
+
+    const panel = document.querySelector('.scanner-panel');
+    if (panel) {
+      panel.addEventListener('mousemove', e => {
+        const r = panel.getBoundingClientRect();
+        const x = ((e.clientX - r.left) / r.width * 100).toFixed(1);
+        const y = ((e.clientY - r.top) / r.height * 100).toFixed(1);
+        panel.style.background = `radial-gradient(circle at ${x}% ${y}%, rgba(83,119,255,0.1), rgba(12,15,30,0.55) 60%)`;
+      });
+      panel.addEventListener('mouseleave', () => {
+        panel.style.background = 'var(--glass-bg)';
+      });
+    }
+  });
+
+  document.getElementById("url").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") startScan();
+  });
+</script>
+</body>
+</html>
